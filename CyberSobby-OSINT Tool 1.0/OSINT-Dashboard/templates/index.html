@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSobby-OSINT Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+
+        <header class="hero">
+            <p class="eyebrow">PASSIVE RECONNAISSANCE</p>
+            <h1>CyberSobby-OSINT <span>Dashboard</span></h1>
+            <p class="subtitle">
+                Explore DNS records, public IP intelligence,
+                and domain registration data.
+            </p>
+        </header>
+
+        <section class="search-panel">
+            <form method="POST">
+                <label for="domain">Domain name or URL</label>
+
+                <div class="search-row">
+                    <input
+                        type="text"
+                        id="domain"
+                        name="domain"
+                        placeholder="example.com"
+                        value="{{ entered_domain }}"
+                        maxlength="2048"
+                        required
+                    >
+                    <button type="submit">Analyze Domain</button>
+                </div>
+
+                <p class="hint">
+                    Start with a domain you are authorized to research.
+                    Example: example.com
+                </p>
+            </form>
+        </section>
+
+        {% if error %}
+            <div class="message error" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if results %}
+            <section class="results-heading">
+                <div>
+                    <p class="eyebrow">LOOKUP RESULTS</p>
+                    <h2>{{ results.domain }}</h2>
+                </div>
+
+                <p class="timestamp">
+                    Checked: {{ results.checked_at }}
+                </p>
+            </section>
+
+            <div class="dashboard-grid">
+
+                <section class="panel">
+                    <h3>IP Addresses</h3>
+
+                    {% if results.ip_addresses %}
+                        <ul class="result-list">
+                            {% for ip in results.ip_addresses %}
+                                <li><code>{{ ip }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="muted">
+                            No public A or AAAA addresses found.
+                        </p>
+                    {% endif %}
+                </section>
+
+                <section class="panel">
+                    <h3>IP Intelligence</h3>
+
+                    {% if results.ip_info.error %}
+                        <p class="muted">
+                            {{ results.ip_info.error }}
+                        </p>
+                    {% else %}
+                        <div class="details-grid">
+                            <span>IP address</span>
+                            <strong>{{ results.ip_info.ip or "N/A" }}</strong>
+
+                            <span>Country</span>
+                            <strong>{{ results.ip_info.country or "N/A" }}</strong>
+
+                            <span>Region</span>
+                            <strong>{{ results.ip_info.region or "N/A" }}</strong>
+
+                            <span>City</span>
+                            <strong>{{ results.ip_info.city or "N/A" }}</strong>
+
+                            <span>ISP</span>
+                            <strong>{{ results.ip_info.isp or "N/A" }}</strong>
+
+                            <span>Organization</span>
+                            <strong>{{ results.ip_info.organization or "N/A" }}</strong>
+
+                            <span>ASN</span>
+                            <strong>{{ results.ip_info.asn or "N/A" }}</strong>
+
+                            <span>Timezone</span>
+                            <strong>{{ results.ip_info.timezone or "N/A" }}</strong>
+                        </div>
+                    {% endif %}
+                </section>
+
+                <section class="panel">
+                    <h3>Domain Registration (RDAP)</h3>
+
+                    {% if results.rdap.available %}
+                        <div class="details-grid">
+                            <span>Domain handle</span>
+                            <strong>{{ results.rdap.handle or "N/A" }}</strong>
+
+                            <span>Registrar</span>
+                            <strong>{{ results.rdap.registrar or "Not listed" }}</strong>
+                        </div>
+
+                        <h4>Domain Status</h4>
+                        {% if results.rdap.statuses %}
+                            <ul class="result-list">
+                                {% for status in results.rdap.statuses %}
+                                    <li>{{ status }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="muted">No status listed.</p>
+                        {% endif %}
+
+                        <h4>Registration Events</h4>
+                        {% if results.rdap.events %}
+                            <ul class="result-list">
+                                {% for event in results.rdap.events %}
+                                    <li>
+                                        <strong>{{ event.action }}:</strong>
+                                        {{ event.date }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="muted">
+                                No registration events returned.
+                            </p>
+                        {% endif %}
+
+                        <h4>Nameservers</h4>
+                        {% if results.rdap.nameservers %}
+                            <ul class="result-list">
+                                {% for nameserver in results.rdap.nameservers %}
+                                    <li><code>{{ nameserver }}</code></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="muted">No nameservers listed.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="muted">{{ results.rdap.message }}</p>
+                    {% endif %}
+                </section>
+
+            </div>
+
+            <section class="panel dns-panel">
+                <div class="section-heading">
+                    <div>
+                        <h3>DNS Records</h3>
+                        <p class="muted">
+                            Records returned for {{ results.domain }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="dns-grid">
+                    {% for record_type, values in results.dns.items() %}
+                        <article class="dns-card">
+                            <div class="record-heading">
+                                <h4>{{ record_type }}</h4>
+                                <span class="count">
+                                    {{ values|length }} found
+                                </span>
+                            </div>
+
+                            {% if values %}
+                                <ul class="result-list">
+                                    {% for value in values %}
+                                        <li><code>{{ value }}</code></li>
+                                    {% endfor %}
+                                </ul>
+                            {% elif results.dns_errors.get(record_type) %}
+                                <p class="muted">
+                                    {{ results.dns_errors[record_type] }}
+                                </p>
+                            {% else %}
+                                <p class="muted">
+                                    No records returned.
+                                </p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <p class="disclaimer">
+                Results represent the information returned by the
+                queried services at lookup time. Missing data does not
+                necessarily indicate a security problem.
+            </p>
+        {% endif %}
+
+        <footer>
+            <p>CyberSobby-OSINT Dashboard · Educational Cybersecurity Project</p>
+        </footer>
+
+    </main>
+</body>
+</html>
