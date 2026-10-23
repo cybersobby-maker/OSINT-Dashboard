@@ -14,7 +14,7 @@ This project was built as a hands-on cybersecurity learning project to explore D
 
 ![OSINT Basic Scan](screenshots/OSINT-BasicScan.png)
 
-![OSINT Basic Scan Continued](screenshots/OSINT-BasicScan.png2)
+![OSINT Basic Scan Continued](screenshots/OSINT-BasicScan2.png)
 
 Features
 
